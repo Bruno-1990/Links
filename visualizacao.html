@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Links para Download</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script defer src="visualizacao.js"></script>
+</head>
+<body>
+  <h1>Links para Download</h1>
+
+  <!-- Lista de Quadros -->
+  <div id="quadro-container" class="accordion-container"></div>
+
+  <!-- Modal Dinâmico -->
+  <div class="modal-overlay" id="modalDinamico">
+    <div class="modal">
+      <button class="close-btn" onclick="fecharModal()">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+</body>
+</html>
