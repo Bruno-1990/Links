@@ -61,18 +61,17 @@ h1 {
   transform: scale(1.05);
 }
 
+/* MODAL Overlay */
 .modal-overlay {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.8);
-  z-index: 999;
+  z-index: 9999;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
   opacity: 0;
   transition: opacity 0.5s ease;
 }
@@ -82,17 +81,34 @@ h1 {
   opacity: 1;
 }
 
+/* Modal Container */
 .modal {
   background: #0566B6;
   border-radius: 20px;
   padding: 30px;
-  max-width: 500px;
+  max-width: 600px;
   width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
   transform: translateY(-20px);
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards;
   position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff80 transparent;
+}
+
+/* Scrollbar Webkit */
+.modal::-webkit-scrollbar {
+  width: 8px;
+}
+.modal::-webkit-scrollbar-thumb {
+  background-color: #ffffff70;
+  border-radius: 4px;
+}
+.modal::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 @keyframes fadeInUp {
@@ -200,6 +216,7 @@ input {
   background-color: #e53935;
   transform: scale(1.05);
 }
+
 .btn-icon {
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -223,19 +240,17 @@ input {
 .btn-icon i {
   pointer-events: none;
 }
-.modal h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 1.8rem;
-}
+
 .modal h2 {
   text-align: center;
   margin-bottom: 24px;
   font-size: 1.8rem;
 }
 
-.link-item {
-  margin-bottom: 20px;
+.modal h3 {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 1.3rem;
 }
 
 .modal input {
@@ -260,6 +275,8 @@ input {
   justify-content: center;
   margin-top: 20px;
 }
+
+/* Dropzone */
 .drop-zone {
   position: relative;
   border: 2px dashed #ffffff50;
@@ -290,8 +307,4 @@ input {
 
 .drop-zone input[type="file"] {
   display: none;
-}
-
-.modal h3{
-    text-align: center;
 }

@@ -1,20 +1,20 @@
-// Inicializa o cliente Supabase com a URL e chave pública
+// Inicializa o cliente Supabase
 const supabaseClient = window.supabase.createClient(
   'https://rmkokxhzmmizxjmcrjff.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29reGh6bW1penhqbWNyamZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyNDc2ODcsImV4cCI6MjA2NTgyMzY4N30.YFXpLvLNMblNQJ5Or-Tp19xfslQWvVcse5lUje_jblE'
 );
-// Carrega todos os quadros da tabela 'quadros' do Supabase
+
+// Carrega os quadros
 async function carregarQuadros() {
   const { data, error } = await supabaseClient.from('quadros').select('*').order('nome');
   const container = document.getElementById('quadro-container');
-  container.innerHTML = ''; // Limpa o conteúdo anterior
+  container.innerHTML = '';
 
   if (error) {
     container.innerHTML = '<p>Erro ao carregar quadros.</p>';
     return;
   }
 
-  // Para cada quadro, cria um cartão com nome, ícone e botão de exclusão
   for (const q of data) {
     const div = document.createElement('div');
     div.className = 'accordion';
@@ -31,7 +31,7 @@ async function carregarQuadros() {
   }
 }
 
-// Manipulador intermediário para abrir modal (decodifica os dados do quadro)
+// Abre modal ao clicar
 function handleAbrirModal(el) {
   const id = el.dataset.id;
   const nome = decodeURIComponent(el.dataset.nome);
@@ -39,7 +39,7 @@ function handleAbrirModal(el) {
   abrirModal(id, nome, icone);
 }
 
-// Insere um novo quadro com nome e ícone fornecidos
+// Adiciona novo quadro
 async function adicionarQuadro() {
   const nome = document.getElementById('nome-quadro').value.trim();
   const icone = document.getElementById('icone-quadro').value.trim();
@@ -48,10 +48,10 @@ async function adicionarQuadro() {
   await supabaseClient.from('quadros').insert([{ nome, icone }]);
   document.getElementById('nome-quadro').value = '';
   document.getElementById('icone-quadro').value = '';
-  carregarQuadros(); // Recarrega a lista após adicionar
+  carregarQuadros();
 }
 
-// Remove o quadro e os links associados, com confirmação via SweetAlert
+// Remove quadro e links
 async function removerQuadro(id) {
   const confirm = await Swal.fire({
     title: 'Tem certeza?',
@@ -72,7 +72,7 @@ async function removerQuadro(id) {
   }
 }
 
-// Abre o modal de visualização e cadastro de links para um quadro específico
+// Abre modal e mostra os links
 async function abrirModal(id, nome, icone) {
   const { data, error } = await supabaseClient
     .from('links')
@@ -97,7 +97,7 @@ async function abrirModal(id, nome, icone) {
     }
   }
 
-  // Formulário de link manual
+  // Formulário + Dropzone
   html += `
     <form onsubmit="event.preventDefault(); adicionarLink(${id}, '${nome.replace(/'/g, "\\'")}', '${icone.replace(/'/g, "\\'")}')">
       <input id="nome-link" placeholder="Nome do link">
@@ -108,8 +108,8 @@ async function abrirModal(id, nome, icone) {
     <hr>
     <h3>Importar links por arquivo JSON</h3>
     <div id="drop-zone" class="drop-zone">
-      Arraste um arquivo .json aqui ou clique para selecionar
-      <input type="file" id="file-input" accept=".json" hidden>
+        Arraste um arquivo .json, .bat ou .pdf aqui ou clique para selecionar
+        <input type="file" id="file-input" accept=".json,.bat,.pdf" hidden>
     </div>`;
 
   const modal = document.getElementById('modalDinamico');
@@ -117,7 +117,6 @@ async function abrirModal(id, nome, icone) {
   modal.style.display = 'flex';
   modal.classList.add('show');
 
-  // Ativa o dropzone após o HTML ser injetado
   setTimeout(() => {
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
@@ -137,41 +136,114 @@ async function abrirModal(id, nome, icone) {
       e.preventDefault();
       dropZone.style.backgroundColor = '';
       const file = e.dataTransfer.files[0];
-      if (file) processJSONFile(file);
+      if (file) processUpload(file);
     });
 
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
-      if (file) processJSONFile(file);
+      if (file) processUpload(file);
     });
 
-    async function processJSONFile(file) {
+    async function processUpload(file) {
       try {
-        const text = await file.text();
-        const links = JSON.parse(text);
+        const nomeArquivo = file.name.toLowerCase();
 
-        if (!Array.isArray(links)) throw new Error("Formato inválido: o conteúdo deve ser um array.");
+        if (nomeArquivo.endsWith('.json')) {
+          const text = await file.text();
+          const links = JSON.parse(text);
 
-        const validLinks = links.filter(l =>
-          typeof l.nome === 'string' && typeof l.url === 'string'
-        );
+          if (!Array.isArray(links)) {
+            throw new Error("Formato inválido: o conteúdo deve ser um array.");
+          }
 
-        if (validLinks.length === 0) {
-          Swal.fire('Erro', 'Nenhum link válido encontrado no arquivo.', 'error');
+          const validLinks = links.filter(l =>
+            typeof l.nome === 'string' && typeof l.url === 'string'
+          );
+
+          if (validLinks.length === 0) {
+            return Swal.fire('Erro', 'Nenhum link válido encontrado no arquivo.', 'error');
+          }
+
+          await supabaseClient.from('links').insert(
+            validLinks.map(l => ({
+              id_quadro: id,
+              nome: l.nome,
+              url: l.url
+            }))
+          );
+
+          Swal.fire('Sucesso!', `${validLinks.length} links importados com sucesso.`, 'success');
+          abrirModal(id, nome, icone);
+          return;
+        }
+        
+        if (nomeArquivo.endsWith('.pdf')) {
+        const { data, error } = await supabaseClient.storage
+            .from('bat-files')
+            .upload(`pdfs/${file.name}`, file, {
+            cacheControl: '3600',
+            upsert: true
+            });
+
+        if (error) {
+            return Swal.fire('Erro no upload', error.message, 'error');
+        }
+
+        const { data: publicData } = supabaseClient.storage
+            .from('bat-files')
+            .getPublicUrl(`pdfs/${file.name}`);
+
+        const publicURL = publicData?.publicUrl;
+
+        if (!publicURL) {
+            return Swal.fire('Erro', 'Não foi possível obter a URL pública do PDF.', 'error');
+        }
+
+        await supabaseClient.from('links').insert([{
+            id_quadro: id,
+            nome: file.name,
+            url: publicURL
+        }]);
+
+        Swal.fire('Upload completo!', 'Arquivo PDF armazenado com sucesso.', 'success');
+        abrirModal(id, nome, icone);
+        return;
+        }
+
+        if (nomeArquivo.endsWith('.bat')) {
+          const { data, error } = await supabaseClient.storage
+            .from('bat-files')
+            .upload(`scripts/${file.name}`, file, {
+              cacheControl: '3600',
+              upsert: true
+            });
+
+          if (error) {
+            return Swal.fire('Erro no upload', error.message, 'error');
+          }
+
+          const { data: publicData } = supabaseClient.storage
+            .from('bat-files')
+            .getPublicUrl(`scripts/${file.name}`);
+
+          const publicURL = publicData?.publicUrl;
+
+          if (!publicURL) {
+            return Swal.fire('Erro', 'Não foi possível obter a URL pública do arquivo.', 'error');
+          }
+
+          await supabaseClient.from('links').insert([{
+            id_quadro: id,
+            nome: file.name,
+            url: publicURL
+          }]);
+
+          Swal.fire('Upload completo!', 'Arquivo .bat armazenado com sucesso.', 'success');
+          abrirModal(id, nome, icone);
           return;
         }
 
-        await supabaseClient.from('links').insert(
-          validLinks.map(l => ({
-            id_quadro: id,
-            nome: l.nome,
-            url: l.url
-          }))
-        );
-
-        Swal.fire('Sucesso!', `${validLinks.length} links importados com sucesso.`, 'success');
-        abrirModal(id, nome, icone); // recarrega o modal com os novos links
-
+        Swal.fire('Erro', 'Tipo de arquivo não suportado.', 'error');
       } catch (err) {
         Swal.fire('Erro ao importar', err.message, 'error');
       }
@@ -179,24 +251,23 @@ async function abrirModal(id, nome, icone) {
   }, 100);
 }
 
-
-// Insere um novo link vinculado ao quadro atual
+// Adiciona link manual
 async function adicionarLink(id_quadro, nome, icone) {
   const nomeLink = document.getElementById('nome-link').value.trim();
   const urlLink = document.getElementById('url-link').value.trim();
   if (!nomeLink || !urlLink) return alert('Preencha o nome e a URL do link.');
 
   await supabaseClient.from('links').insert([{ id_quadro, nome: nomeLink, url: urlLink }]);
-  abrirModal(id_quadro, nome, icone); // Reabre o modal com link atualizado
+  abrirModal(id_quadro, nome, icone);
 }
 
-// Remove um link específico e recarrega o modal
+// Remove link
 async function removerLink(id_link, id_quadro, nome, icone) {
   await supabaseClient.from('links').delete().eq('id', id_link);
   abrirModal(id_quadro, nome, icone);
 }
 
-// Fecha o modal com animação e limpa o conteúdo interno
+// Fecha modal
 function fecharModal() {
   const modal = document.getElementById('modalDinamico');
   modal.classList.remove('show');
@@ -206,19 +277,19 @@ function fecharModal() {
   }, 400);
 }
 
-// Permite fechar o modal ao clicar fora da área central
+// Fechar modal ao clicar fora
 document.getElementById('modalDinamico').addEventListener('click', function (event) {
   if (event.target.id === 'modalDinamico') {
     fecharModal();
   }
 });
 
-// Permite fechar o modal ao pressionar a tecla ESC
+// Fechar modal ao pressionar ESC
 document.addEventListener('keydown', function (event) {
   if (event.key === 'Escape') {
     fecharModal();
   }
 });
 
-// Executa o carregamento inicial dos quadros quando a página carrega
+// Carregar quadros ao iniciar
 window.onload = carregarQuadros;
