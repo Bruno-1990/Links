@@ -69,7 +69,7 @@ async function abrirModal(id, nome, icone) {
         <a href="${link.url}" target="_blank" rel="noopener noreferrer">
           ${link.nome}
         </a>
-        <div class="note">Download direto - Botão direito, "Abrir link em nova janela"</div>
+        <div class="note">Click para acessar a página</div>
       </div>`
       )
       .join('');
